@@ -95,7 +95,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
-  list_init (&blocked_list);
+  //list_init (&blocked_list);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -467,7 +467,6 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
-  t->wakeup_time = 500;
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -660,11 +659,16 @@ bool compare_tick_time(void)
   return false;
 }
 
-bool check_wake_time(const struct list_elem *new_item, const struct list_elem *list_item, void *aux)
+bool check_wake_time(const struct list_elem *new_item, const struct list_elem *list_item, void *aux UNUSED)
 {
   struct thread *t_new_item = list_entry(new_item, struct thread, elem);
   struct thread *t_list_item = list_entry(list_item, struct thread, elem);
-
+  if(t_new_item->wakeup_time < t_list_item->wakeup_time)
+  {
+    return true;
+  }
+  return false;
+/*
   if(t_new_item->wakeup_time == t_list_item->wakeup_time)
   {
     if(t_new_item->priority < t_list_item->priority)
@@ -677,6 +681,7 @@ bool check_wake_time(const struct list_elem *new_item, const struct list_elem *l
     return true;
   }
   return false;
+  */
 }
 
 bool wake_blocked_thread(int64_t OS_ticks)

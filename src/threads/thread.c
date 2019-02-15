@@ -86,7 +86,7 @@ static tid_t allocate_tid (void);
    thread_create().
 
    It is not safe to call thread_current() until this function
-   finishes. */
+   finishes. m*/
 void
 thread_init (void)
 {

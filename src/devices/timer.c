@@ -181,7 +181,6 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
-  //wake_blocked_thread(ticks);
   thread_tick ();
   struct list_elem *elem = list_begin(&sleeper_list);
   while(elem != list_end(&sleeper_list))

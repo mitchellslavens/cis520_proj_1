@@ -28,9 +28,6 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
-/* List of blocked threads */
-static struct list blocked_list;
-
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -588,8 +585,6 @@ allocate_tid (void)
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 //*******************************proj 1******************************
-
-
 void thread_increase_priority(void)
 {
   struct thread *current = thread_current();
@@ -609,56 +604,6 @@ void thread_restore_priority(void)
   thread_current()->priority = thread_current()->prior_priority;
 }
 
-void thread_block_till(int64_t wakeup_at)
-{
-  printf("thread_block_till\n");
-  printf("(%ld)_thread.c: initalized blocked_list\n", (long)__LINE__);
-  // TODO: make this atomic? YES
-  enum intr_level old_level;
-  struct thread *t = thread_current();
-
-  old_level = intr_disable();
-
-  if(&blocked_list == NULL)
-  {
-    list_init(&blocked_list);
-    printf("(%ld)_thread.c: initalized blocked_list\n", (long)__LINE__);
-  }
-
-  t->wakeup_time = wakeup_at;
-  printf("%d\n", t->wakeup_time);
-  printf("(%ld)_thread.c thread_block blocking function?\n", (long)__LINE__);
-  list_insert_ordered(&blocked_list, &t->elem, check_wake_time, NULL);
-  thread_block();
-  intr_set_level(old_level);
-
-  // TODO: figure out which method to list_insert_ordered
-  printf("(%ld)_thread.c %d\n", (long)__LINE__, list_size(&blocked_list));
-  //list_insert(blocked_list, t->elem);
-
-
-}
-
-void thread_set_next_wakeup(void)
-{
-  thread_unblock(list_entry(list_front(&blocked_list), struct thread, elem));
-}
-
-bool compare_tick_time(void)
-{
-  enum intr_level old_level;
-
-  old_level = intr_disable();
-  struct thread *curr_wake_thread = list_entry(list_front(&blocked_list), struct thread, elem);
-  if(curr_wake_thread->wakeup_time < thread_current()->wakeup_time)
-  {
-    intr_set_level(old_level);
-    return true;
-  }
-  intr_set_level(old_level);
-  return false;
-}
-
 bool check_wake_time(const struct list_elem *new_item, const struct list_elem *list_item, void *aux UNUSED)
 {
   struct thread *t_new_item = list_entry(new_item, struct thread, elem);
@@ -668,37 +613,4 @@ bool check_wake_time(const struct list_elem *new_item, const struct list_elem *l
     return true;
   }
   return false;
-/*
-  if(t_new_item->wakeup_time == t_list_item->wakeup_time)
-  {
-    if(t_new_item->priority < t_list_item->priority)
-    {
-      return true;
-    }
-  }
-  else if(t_new_item->wakeup_time < t_list_item->wakeup_time)
-  {
-    return true;
-  }
-  return false;
-  */
-}
-
-bool wake_blocked_thread(int64_t OS_ticks)
-{
-  enum intr_level old_level;
-
-  old_level = intr_disable();
-  if(&blocked_list != NULL && !list_empty(&blocked_list))
-  {
-    struct thread *front = list_entry(list_front(&blocked_list), struct thread, elem);
-    if(OS_ticks >= front->wakeup_time)
-    {
-      thread_unblock(front);
-      intr_set_level(old_level);
-      return true;
-    }
-  }
-  intr_set_level(old_level);
-  return true;
 }

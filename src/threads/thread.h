@@ -96,7 +96,7 @@ struct thread
 
     /* For the implementation of priority scheduling */
     struct lock * needed_lock;          /* The lock this thread needs to continue */
-    struct list donation_list;          /* Holds all threads that are donated to  */
+    struct list donation_list;          /* Holds pointers to threads that donated to this thread  */
     struct list_elem donation_elem;     /* List element for donation list         */
 
 
@@ -155,5 +155,7 @@ bool check_wake_time(const struct list_elem *new_item, const struct list_elem *l
 bool wake_blocked_thread(int64_t OS_ticks);
 bool compare_priorities(const struct list_elem *new_item, const struct list_elem *list_item, void *aux);
 void check_highest_priority(void);
-
+void donate(void);
+void remove_donations(struct lock *lock);
+void restore_priority(void);
 #endif /* threads/thread.h */

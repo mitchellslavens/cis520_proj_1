@@ -52,6 +52,7 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
+#define MAX_DEPTH 8
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
 /* If false (default), use round-robin scheduler.
@@ -642,5 +643,58 @@ void check_highest_priority (void)
   if (top_of_ready->priority > thread_current()->priority)
   {
     thread_yield();
+  }
+}
+void donate (void)
+{
+  int depth = 0;
+  struct thread *curr_thread = thread_current();
+  struct lock *curr_lock = curr_thread->needed_lock;
+
+  while(depth != MAX_DEPTH && curr_lock != NULL && curr_lock->holder != NULL && (curr_thread->priority > curr_lock->holder->priority))
+  {
+    curr_lock->holder->priority = curr_thread->priority;
+    curr_thread = curr_lock->holder;
+    curr_lock = curr_thread->needed_lock;
+    depth++;
+  }
+}
+
+void remove_donations(struct lock *lock)
+{
+  struct list_elem *donor;
+  struct list_elem *next_donor;
+  struct list *donor_list = &thread_current()->donation_list;
+
+
+  if(list_empty(donor_list))
+  {
+    return;
+  }
+
+  donor = list_begin(donor_list);
+
+  while(donor != list_end(donor_list))
+  {
+    next_donor = list_next(donor);
+    if(lock == list_entry(donor, struct thread, donation_elem)->needed_lock)
+    {
+      list_remove(donor);
+    }
+    donor = next_donor;
+  }
+}
+
+void restore_priority(void)
+{
+  struct thread *curr_thread = thread_current();
+
+  if(list_empty(&curr_thread->donation_list))
+  {
+    curr_thread->priority = curr_thread->original_priority;
+  }
+  else
+  {
+    curr_thread->priority = list_entry(list_front(&curr_thread->donation_list), struct thread, donation_elem)->priority;
   }
 }

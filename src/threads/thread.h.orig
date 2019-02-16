@@ -96,7 +96,11 @@ struct thread
 
     /* For the implementation of priority scheduling */
     struct lock * needed_lock;          /* The lock this thread needs to continue */
+<<<<<<< HEAD
+    struct list donation_list;          /* Holds pointers to threads that donated to us */
+=======
     struct list donation_list;          /* Holds pointers to threads that donated to this thread  */
+>>>>>>> working
     struct list_elem donation_elem;     /* List element for donation list         */
 
 

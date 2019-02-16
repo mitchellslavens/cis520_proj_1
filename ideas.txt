@@ -1,0 +1,7 @@
+For Priority Scheduling:
+
+Done in Ready Queue
+1. order ready queue based on priority (similar to how we order sleeper queue).
+2. when trying to run, if lock needs to be acquired (and used by someone else),
+	give "someone else" current priority and set their prior_priority to what they had. 
+3. When releasing a lock, always set priority to prior priority. 

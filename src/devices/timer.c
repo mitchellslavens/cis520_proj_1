@@ -194,6 +194,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
     thread_unblock(t);
     elem = list_begin(&sleeper_list);
   }
+  check_highest_priority();
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

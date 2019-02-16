@@ -94,6 +94,12 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
+    /* For the implementation of priority scheduling */
+    struct lock * needed_lock;          /* The lock this thread needs to continue */
+    struct list donation_list;          /* Holds all threads that are donated to  */
+    struct list_elem donation_elem;     /* List element for donation list         */
+
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -147,5 +153,7 @@ void thread_set_next_wakeup(void);
 bool compare_tick_time(void);
 bool check_wake_time(const struct list_elem *new_item, const struct list_elem *list_item, void *aux);
 bool wake_blocked_thread(int64_t OS_ticks);
+bool compare_priorities(const struct list_elem *new_item, const struct list_elem *list_item, void *aux);
+void check_highest_priority(void);
 
 #endif /* threads/thread.h */

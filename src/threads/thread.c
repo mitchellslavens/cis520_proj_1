@@ -238,7 +238,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered(&ready_list, &t->elem, (list_less_func *) &compare_priorities, NULL);
+  //list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -309,7 +310,8 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread)
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered(&ready_list, &cur->elem, (list_less_func *) &compare_priorities, NULL);
+    //list_push_back (&ready_list, &cur->elem);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -336,14 +338,27 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
-  thread_current ()->priority = new_priority;
+  enum intr_level old_level = intr_disable ();
+  thread_current()->priority = new_priority;
+  if (thread_current()->prior_priority < new_priority)
+  {
+
+  }
+  if (thread_current()->prior_priority > new_priority)
+  {
+    check_highest_priority();
+  }
+  thread_current()->prior_priority = new_priority;
+  intr_set_level(old_level);
 }
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void)
 {
+  enum intr_level old_level = intr_disable ();
   return thread_current ()->priority;
+  intr_set_level(old_level);
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -463,6 +478,7 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->prior_priority = priority;
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
@@ -604,6 +620,17 @@ void thread_restore_priority(void)
   thread_current()->priority = thread_current()->prior_priority;
 }
 
+bool compare_priorities(const struct list_elem *new_item, const struct list_elem *list_item, void *aux UNUSED)
+{
+  struct thread * t_new_item = list_entry(new_item, struct thread, elem);
+  struct thread * t_list_item = list_entry(list_item, struct thread, elem);
+  if (t_new_item->priority > t_list_item->priority)
+  {
+    return true;
+  }
+  return false;
+}
+
 bool check_wake_time(const struct list_elem *new_item, const struct list_elem *list_item, void *aux UNUSED)
 {
   struct thread *t_new_item = list_entry(new_item, struct thread, elem);
@@ -613,4 +640,25 @@ bool check_wake_time(const struct list_elem *new_item, const struct list_elem *l
     return true;
   }
   return false;
+}
+
+void check_highest_priority (void)
+{
+  if (list_empty(&ready_list))
+  {
+    return;
+  }
+  struct thread *top_of_ready = list_entry (list_begin(&ready_list), struct thread, elem);
+  if (intr_context())
+  {
+      if (top_of_ready->priority > thread_current()->priority)
+      {
+        intr_yield_on_return();
+      }
+      return;
+  }
+  if (top_of_ready->priority > thread_current()->priority)
+  {
+    thread_yield();
+  }
 }

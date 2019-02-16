@@ -20,6 +20,8 @@
    of thread.h for details. */
 #define THREAD_MAGIC 0xcd6abf4b
 
+#define MAX_DEPTH 8
+
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
@@ -643,4 +645,20 @@ void check_highest_priority (void)
   {
     thread_yield();
   }
+}
+
+void donate (void)
+{
+  int depth = 0;
+  struct thread *curr_thread = current_thread();
+  struct lock *curr_lock = current->needed_lock;
+
+  while(depth != MAX_DEPTH && curr_lock != NULL && curr_lock->holder != NULL && (curr_thread->priority > curr_lock->holder->priority))
+  {
+    curr_lock->holder->priority = curr_thread->priority;
+    curr_thread = curr_lock->holder;
+    curr_lock = curr_thread->needed_lock;
+    depth++;
+  }
+
 }

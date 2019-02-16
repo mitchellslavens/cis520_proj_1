@@ -601,24 +601,6 @@ allocate_tid (void)
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 //*******************************proj 1******************************
-void thread_increase_priority(void)
-{
-  struct thread *current = thread_current();
-  int new_priority = current->priority * 2;
-  current->prior_priority = current->priority;
-
-  if(new_priority > PRI_MAX)
-  {
-    new_priority = PRI_MAX;
-  }
-
-  current->priority = new_priority;
-}
-
-void thread_restore_priority(void)
-{
-  thread_current()->priority = thread_current()->prior_priority;
-}
 
 bool compare_priorities(const struct list_elem *new_item, const struct list_elem *list_item, void *aux UNUSED)
 {

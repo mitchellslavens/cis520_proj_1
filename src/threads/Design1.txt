@@ -1,11 +1,11 @@
 CIS 520 - Programming Project #1
 
-                   
+
 ---- GROUP ----
 
 >> Fill in the names and email addresses of your group members.
 
-Lev			Kavs		levnikolaj@ksu.edu
+Lev		Kavs		levnikolaj@ksu.edu
 Sam 		Moylan		smoylan22@ksu.edu
 Mitchell	Slavens		mslavens@ksu.edu
 
@@ -18,6 +18,7 @@ Mitchell	Slavens		mslavens@ksu.edu
 >> preparing your submission, other than the Pintos documentation,
 >> course text, lecture notes, and course staff.
 
+  - https://github.com/ryantimwilson/Pintos-Project-1
 
                  ALARM CLOCK
                  ===========
@@ -28,15 +29,27 @@ Mitchell	Slavens		mslavens@ksu.edu
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+  Added list to timer.c to keep track of all sleeping threads.
+
+  - static struct list sleeper_list;
+
+  Added field to thread.h to keep track of sleep time for the thread.
+
+  - int64_t wakeup_time;
 
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe what happens in a call to your timer_sleep(),
 >> including the effects of the timer interrupt handler.
 
+  - A call to timer_sleep() will set the wakeup_time field in the current
+    running thread. The thread object is inserted into the sleeper_list in
+    order of wakeup_time. The thread then calls thread_block().
+
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
-
+  - In timer_interrupt() we first execute the code that was there first. The
+    beginning of the sleeper_list is grabbed and checked if it is the end. 
 
 ---- SYNCHRONIZATION ----
 
@@ -133,4 +146,3 @@ ticks   A   B   C   A   B   C   to run
 >> disadvantages in your design choices.  If you were to have extra
 >> time to work on this part of the project, how might you choose to
 >> refine or improve your design?
-

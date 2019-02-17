@@ -185,6 +185,8 @@ thread_create (const char *name, int priority,
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
 
+  enum intr_level old_level = intr_disable();
+
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
   kf->eip = NULL;
@@ -200,8 +202,14 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
+  intr_set_level(old_level);
+
   /* Add to run queue. */
   thread_unblock (t);
+
+  old_level = intr_disable();
+  check_highest_priority();
+  intr_set_level(old_level);
 
   return tid;
 }
@@ -340,16 +348,17 @@ void
 thread_set_priority (int new_priority)
 {
   enum intr_level old_level = intr_disable ();
-  thread_current()->priority = new_priority;
-  if (thread_current()->original_priority < new_priority)
+  int old_priority = thread_current()->priority;
+  thread_current()->original_priority = new_priority;
+  restore_priority();
+  if (old_priority < thread_current()->priority)
   {
-
+    donate();
   }
-  if (thread_current()->original_priority > new_priority)
+  if (old_priority > thread_current()-> priority)
   {
     check_highest_priority();
   }
-  thread_current()->original_priority = new_priority;
   intr_set_level(old_level);
 }
 
@@ -358,8 +367,10 @@ int
 thread_get_priority (void)
 {
   enum intr_level old_level = intr_disable ();
-  return thread_current ()->priority;
+  int prio = thread_current()->priority;
   intr_set_level(old_level);
+  return prio;
+
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -480,7 +491,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->original_priority = priority;
+  t->needed_lock = NULL;
   t->magic = THREAD_MAGIC;
+  list_init(&t->donation_list);
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -651,7 +664,7 @@ void donate (void)
   struct thread *curr_thread = thread_current();
   struct lock *curr_lock = curr_thread->needed_lock;
 
-  while(depth != MAX_DEPTH && curr_lock != NULL && curr_lock->holder != NULL && (curr_thread->priority > curr_lock->holder->priority))
+  while(depth < MAX_DEPTH && curr_lock != NULL && curr_lock->holder != NULL && (curr_thread->priority > curr_lock->holder->priority))
   {
     curr_lock->holder->priority = curr_thread->priority;
     curr_thread = curr_lock->holder;
@@ -666,12 +679,12 @@ void remove_donations(struct lock *lock)
   struct list_elem *next_donor;
   struct list *donor_list = &thread_current()->donation_list;
 
-
   if(list_empty(donor_list))
   {
     return;
   }
 
+  printf("list is not empty\n");
   donor = list_begin(donor_list);
 
   while(donor != list_end(donor_list))

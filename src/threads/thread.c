@@ -37,6 +37,9 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
+/*lock used when accessing priorities*/
+static struct lock priority_lock;
+
 /* Stack frame for kernel_thread(). */
 struct kernel_thread_frame
   {
@@ -354,7 +357,7 @@ thread_set_priority (int new_priority)
   {
     donate();
   }
-  if (old_priority > thread_current()-> priority)
+  else if (old_priority > thread_current()-> priority)
   {
     check_highest_priority();
   }
@@ -365,9 +368,11 @@ thread_set_priority (int new_priority)
 int
 thread_get_priority (void)
 {
+  ///lock_acquire(&priority_lock);
   enum intr_level old_level = intr_disable ();
   int prio = thread_current()->priority;
   intr_set_level(old_level);
+  //lock_release(&priority_lock);
   return prio;
 
 }

@@ -94,6 +94,10 @@ void
 timer_sleep (int64_t ticks)
 {
   ASSERT (intr_get_level () == INTR_ON);
+  if (ticks <= 0)
+  {
+    return;
+  }
   enum intr_level old_level = intr_disable();
 
   int64_t start = timer_ticks ();

@@ -210,7 +210,6 @@ thread_create (const char *name, int priority,
   old_level = intr_disable();
   check_highest_priority();
   intr_set_level(old_level);
-
   return tid;
 }
 
@@ -647,7 +646,9 @@ void check_highest_priority (void)
   struct thread *top_of_ready = list_entry (list_begin(&ready_list), struct thread, elem);
   if (intr_context())
   {
-      if (top_of_ready->priority > thread_current()->priority)
+    thread_ticks++;
+      if ((thread_ticks >= TIME_SLICE && thread_current()->priority == top_of_ready->priority) ||
+       top_of_ready->priority > thread_current()->priority)
       {
         intr_yield_on_return();
       }
@@ -684,7 +685,6 @@ void remove_donations(struct lock *lock)
     return;
   }
 
-  printf("list is not empty\n");
   donor = list_begin(donor_list);
 
   while(donor != list_end(donor_list))

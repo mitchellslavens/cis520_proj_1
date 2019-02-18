@@ -107,6 +107,15 @@ Mitchell	Slavens		mslavens@ksu.edu
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+This is the lock used for the critical section in get_priority
+
+- static struct get_priority_lock
+
+This is the lock used for the critical section in set_priority 
+
+- static struct set_priority_lock
+
+
 The following are added to the struct thread...
 ---------------------------------------------------------------------------------------
 

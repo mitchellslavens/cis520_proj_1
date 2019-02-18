@@ -151,7 +151,6 @@ void thread_restore_priority(void);
 void thread_block_till(int64_t wakeup_at);
 void thread_set_next_wakeup(void);
 bool compare_tick_time(void);
-bool check_wake_time(const struct list_elem *new_item, const struct list_elem *list_item, void *aux);
 bool wake_blocked_thread(int64_t OS_ticks);
 bool compare_priorities(const struct list_elem *new_item, const struct list_elem *list_item, void *aux);
 void check_highest_priority(void);

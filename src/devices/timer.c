@@ -193,16 +193,13 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
   struct list_elem *elem = list_begin(&sleeper_list);
-  while(elem != list_end(&sleeper_list))
+  struct thread *t = list_entry(elem, struct thread, elem);
+  while(elem != list_end(&sleeper_list) && ticks >= t-> wakeup_time)
   {
-    struct thread *t = list_entry(elem, struct thread, elem);
-    if(ticks < t->wakeup_time)
-    {
-      break;
-    }
     list_remove(elem);
     thread_unblock(t);
     elem = list_begin(&sleeper_list);
+    t = list_entry(elem, struct thread, elem);
   }
   check_highest_priority();
 }
@@ -276,4 +273,15 @@ real_time_delay (int64_t num, int32_t denom)
      the possibility of overflow. */
   ASSERT (denom % 1000 == 0);
   busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000));
+}
+
+bool check_wake_time(const struct list_elem *new_item, const struct list_elem *list_item, void *aux UNUSED)
+{
+  struct thread *t_new_item = list_entry(new_item, struct thread, elem);
+  struct thread *t_list_item = list_entry(list_item, struct thread, elem);
+  if(t_new_item->wakeup_time < t_list_item->wakeup_time)
+  {
+    return true;
+  }
+  return false;
 }

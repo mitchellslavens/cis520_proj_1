@@ -627,17 +627,6 @@ bool compare_priorities(const struct list_elem *new_item, const struct list_elem
   return false;
 }
 
-bool check_wake_time(const struct list_elem *new_item, const struct list_elem *list_item, void *aux UNUSED)
-{
-  struct thread *t_new_item = list_entry(new_item, struct thread, elem);
-  struct thread *t_list_item = list_entry(list_item, struct thread, elem);
-  if(t_new_item->wakeup_time < t_list_item->wakeup_time)
-  {
-    return true;
-  }
-  return false;
-}
-
 void check_highest_priority (void)
 {
   if (list_empty(&ready_list))

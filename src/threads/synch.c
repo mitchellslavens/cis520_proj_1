@@ -388,9 +388,6 @@ compare_sema_waiters_priority(const struct list_elem *a, const struct list_elem 
   if(list_empty(&sema_a->semaphore.waiters))
     return false;
 
-  list_sort(&sema_a->semaphore.waiters, (list_less_func *) &compare_priorities, NULL);
-  list_sort(&sema_b->semaphore.waiters, (list_less_func *) &compare_priorities, NULL);
-
   struct thread *thread_a = list_entry(list_front(&sema_a->semaphore.waiters), struct thread, elem);
   struct thread *thread_b = list_entry(list_front(&sema_b->semaphore.waiters), struct thread, elem);
   return (thread_a->priority > thread_b->priority);

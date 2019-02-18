@@ -18,7 +18,10 @@ Mitchell	Slavens		mslavens@ksu.edu
 >> preparing your submission, other than the Pintos documentation,
 >> course text, lecture notes, and course staff.
 
+  - https://www.researchgate.net/publication/319135949_Pintos-T01_Timer_Alarms_without_Busy_Waits_--_A_Guide_for_Students
+  - https://github.com/yuwumichcn223/pintos
   - https://github.com/ryantimwilson/Pintos-Project-1
+  - https://github.com/Hindol/pintos
 
                  ALARM CLOCK
                  ===========
@@ -43,23 +46,39 @@ Mitchell	Slavens		mslavens@ksu.edu
 >> including the effects of the timer interrupt handler.
 
   - A call to timer_sleep() will set the wakeup_time field in the current
-    running thread. The thread object is inserted into the sleeper_list in
-    order of wakeup_time. The thread then calls thread_block().
+    running thread. The thread object is inserted into the sleeper_list
+    according to it's wake time with relation to other threads in the list.
+    The list is sorted in order of soonest wake time at the front. The
+    thread then calls thread_block().
 
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
-  - In timer_interrupt() we first execute the code that was there first. The
-    beginning of the sleeper_list is grabbed and checked if it is the end. 
+
+  - In timer_interrupt() we first execute the code that was there first.
+    Then, the beginning of the sleeper_list is grabbed and checked if it is
+    the end. This removes need to check any further reducing the time spent
+    in the interrupt. While iterating through the sleeper_list we check if
+    the OS ticks are smaller than the current thread from the sleeper_list's
+    wake time. If it is smaller we break and exit because the list is ordered
+    meaning that all the following sleeper_list items do not need to be
+    checked.
 
 ---- SYNCHRONIZATION ----
 
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
 
+  - Race conditions can occur when multiple threads are accessing the
+    sleeper_list when calling list_insert_ordered(). Therefore, we placed
+    locks around the list_insert_ordered() call to only allow one thread to
+    insert at a time. The other parts of the method do not affect race
+    conditions. Because everything else is specific to the thread.
 
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
 
+  - We turned off interrupt, during the critical thread_block() call.
+    This is the only interrupt critical section
 
 ---- RATIONALE ----
 

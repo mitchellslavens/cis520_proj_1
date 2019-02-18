@@ -37,6 +37,10 @@ static struct thread *initial_thread;
 /* Lock used by allocate_tid(). */
 static struct lock tid_lock;
 
+static struct lock set_priority_lock;
+static struct lock get_priority_lock;
+static struct lock create_thread_lock;
+
 /* Stack frame for kernel_thread(). */
 struct kernel_thread_frame
   {
@@ -93,6 +97,8 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+  lock_init(&set_priority_lock);
+  lock_init(&get_priority_lock);
   //list_init (&blocked_list);
 
   /* Set up a thread structure for the running thread. */
@@ -317,7 +323,6 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-
   if (cur != idle_thread)
     list_insert_ordered(&ready_list, &cur->elem, (list_less_func *) &compare_priorities, NULL);
     //list_push_back (&ready_list, &cur->elem);
@@ -347,7 +352,8 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority)
 {
-  enum intr_level old_level = intr_disable ();
+  //enum intr_level old_level = intr_disable ();
+  lock_acquire(&set_priority_lock);
   int old_priority = thread_current()->priority;
   thread_current()->original_priority = new_priority;
   restore_priority();
@@ -359,16 +365,19 @@ thread_set_priority (int new_priority)
   {
     check_highest_priority();
   }
-  intr_set_level(old_level);
+  //intr_set_level(old_level);
+  lock_release(&set_priority_lock);
 }
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void)
 {
-  enum intr_level old_level = intr_disable ();
+  //enum intr_level old_level = intr_disable ();
+  lock_acquire(&get_priority_lock);
   int prio = thread_current()->priority;
-  intr_set_level(old_level);
+  lock_release(&get_priority_lock);
+  //intr_set_level(old_level);
   return prio;
 
 }

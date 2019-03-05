@@ -1,0 +1,8 @@
+implemented infinite loop in src/userprog/process.c as recommended in the project description. This is temporary.
+added struct lock file_system_lock in src/userprog/syscall.c use for synchronicity when accessing the file system & initialize it in syscall_init
+checked if passed pointer is null in syscall.c
+parsed filename argument in process_execute in src/userprog
+parsed filename argument in start_process in src/userprog
+modified header and prototype for load function in process.c
+changed the call to setup_stack in load function in process.c
+modified setup_stack to account for added arguments in ^^^

@@ -39,7 +39,6 @@ static struct lock tid_lock;
 
 static struct lock set_priority_lock;
 static struct lock get_priority_lock;
-static struct lock create_thread_lock;
 
 /* Stack frame for kernel_thread(). */
 struct kernel_thread_frame

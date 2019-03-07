@@ -38,19 +38,26 @@ void verify_ptr(const void * vaddr)
 void term_process(int code)
 {
   struct list_elem *child_elem = list_begin(&thread_current()->parent->child_list);
+
   do
   {
+    // TODO: Do we need a check to make sure we actually have an element?
     struct thread *child_thread = list_entry(child_elem, struct thread, elem);
     if (child_thread->tid == thread_current()->tid)
     {
       child_thread->has_parent = true;
     }
+
+    child_elem = list_next(child_elem);
   } while(child_elem != list_end(&thread_current()->parent->child_list));
+
   thread_current()->exit_code = code;
+
   if(thread_current()->parent->wait_thread == thread_current()->tid)
   {
     sema_up(&thread_current()->parent->child_sema);
   }
+
   thread_exit();
 }
 
@@ -63,6 +70,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   switch(sys_call)
   {
     case SYS_HALT:
+      shutdown_power_off();
       break;
     case SYS_EXIT:
       break;

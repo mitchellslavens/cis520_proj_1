@@ -502,6 +502,12 @@ init_thread (struct thread *t, const char *name, int priority)
   t->needed_lock = NULL;
   t->magic = THREAD_MAGIC;
   list_init(&t->donation_list);
+  /* proj2 below this */
+  list_init(&t->child_list);
+  sema_init(&t->child_sema, 0);
+  t->wait_thread = 0;
+  t->exit_code = -555;
+  t->parent = running_thread();
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

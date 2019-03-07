@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <threads/synch.h>
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -98,6 +99,17 @@ struct thread
     struct lock * needed_lock;          /* The lock this thread needs to continue */
     struct list donation_list;          /* Holds pointers to threads that donated to this thread  */
     struct list_elem donation_elem;     /* List element for donation list         */
+
+    /* For the second project   */
+    struct thread *parent;              /* Holds a pointer to the parent thread */
+    struct list child_list;             /* Holds pointers to child threads */
+    bool has_parent;
+    int exit_code;
+    tid_t wait_thread;
+    struct semaphore child_sema;
+
+
+
 
 
 #ifdef USERPROG

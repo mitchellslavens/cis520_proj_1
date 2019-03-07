@@ -44,12 +44,6 @@ process_execute (const char *file_name)
   //parse file_name
   char *rest;
   file_name = strtok_r((char*)file_name, " ", &rest);
-  //printf("%s\n", fn);
-  //printf("%s\n", rest);
-  //fn = strtok_r(NULL, " ", &rest);
-  //printf("%s\n", fn);
-  //printf("%s\n", rest);
-
     /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)

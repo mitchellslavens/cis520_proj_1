@@ -35,13 +35,39 @@ ARGUMENT PASSING
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
-
+  Added #include "threads/malloc.h" - this allows us to use the malloc() call to allocate
+memory for objects we used.
 
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe how you implemented argument parsing.  How do
 >> you arrange for the elements of argv[] to be in the right order?
 >> How do you avoid overflowing the stack page?
+
+  Argument parsing/passing starts in process_execute where the file_name/function is given to the newly created
+thread. The file_name can contain arguments and strtok_r() is used to extract the name from the arguments and
+only the function name is passed to the thread. When start_process() is called the full file_name, function name
+and arguments, is passed. The function name is extracted with strtok_r() which becomes the value of file_name
+and the left over part is pointed to by 'char *rest'. To the load() function we added an additional parameter for
+any function arguments, changing the prototype to 'load (const char *cmdline, void (**eip) (void), void **esp, char** rest)'.
+The only other change to load() was the call to setup_stack() adding two additional parameters to the prototype
+becoming 'setup_stack (void **esp, const char *fn, char **rest)'. 'fn' points to the function name and 'rest' points
+to any parameters the function was given. The majority of changes happened in setup_stack() because now that
+functions can have arguments they need to be placed on the stack also.
+
+After the page allocation and installation we create our argv array and other variables. We loop through
+the file_name/function name and the arguments copying each into a location on the stack. This is done
+with the stack pointer 'esp' by subtracting from it the length of each string and copying the string into the
+new memory location pointed to by 'esp'. Each memory location that was copied to is then placed into the 'argv'
+array, index 0 being the function name and the parameters following after from left to right. For example, 'echo a b c'
+is to be placed on the stack by placing 'echo' first and it's memory location pointed to by 'esp' into argv[0]. Then,
+'a' is placed on the stack and it's memory location placed into argv[1], 'b' is then placed on the stack and it's
+memory location placed into argv[2] and so forth, so the order is left-to-right. When the final argument is placed
+on the stack the stack is aligned to the next frame. Next the argv array is looped through from right-to-left order
+placing the memory location of the current index onto the stack with memcpy(). Argc, the variable holding the number
+of entries in argv, is placed on the stack next. 
+
+
 
 ---- RATIONALE ----
 

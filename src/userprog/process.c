@@ -8,6 +8,7 @@
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
+#include "userprog/syscall.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
@@ -48,6 +49,12 @@ process_execute (const char *file_name)
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
 
+  sema_down(&thread_current()->child_sema);
+
+  if(!thread_current()->success)
+  {
+    return -1;
+  }
   return tid;
 }
 
@@ -62,9 +69,7 @@ start_process (void *file_name_)
   bool success;
 
   char *rest;
-  //char *fn = strtok_r((char*)file_name, " ", &rest);
   file_name = strtok_r(file_name, " ", &rest);
-  //printf("\nstart_process\n");
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -75,7 +80,17 @@ start_process (void *file_name_)
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success)
-    thread_exit ();
+  {
+    thread_current()->parent->success = false;
+    sema_up(&thread_current()->parent->child_sema);
+    thread_exit();
+  }
+  else
+  {
+    thread_current()->parent->success = true;
+    sema_up(&thread_current()->parent->child_sema);
+
+  }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -124,8 +139,11 @@ process_wait (tid_t child_tid)
     sema_down(&thread_current()->child_sema);
   }
 
+  int rtn = child->exit_code;
   list_remove(found_elem);
-  return child->exit_code;
+
+
+  return rtn;
 }
 
 /* Free the current process's resources. */
@@ -134,6 +152,24 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  if(cur->exit_code == -555)
+  {
+    term_process(-1);
+  }
+
+  acquire_file_lock();
+  file_close(thread_current()->self_file);
+  struct list_elem *elem;
+  while(!list_empty(&thread_current()->file_list))
+  {
+    elem = list_pop_front(&thread_current()->file_list);
+    struct proc_file *file = list_entry(elem, struct proc_file, elem);
+    file_close(file->proc_file_ptr);
+    list_remove(elem);
+    free(file);
+  }
+  release_file_lock();
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -253,14 +289,20 @@ load (const char *file_name, void (**eip) (void), void **esp, char** rest)
   int i;
   //printf("\nload\n");
   /* Allocate and activate page directory. */
+  acquire_file_lock();
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL)
     goto done;
   process_activate ();
+  char *fn_cp = malloc (strlen(file_name)+1);
+  strlcpy(fn_cp, file_name, strlen(file_name)+1);
+  char * save_p;
+  fn_cp = strtok_r(fn_cp," ", &save_p);
 
   /* Open executable file. */
-  file = filesys_open (file_name);
-  //printf("\nHEREREA\n");
+  file = filesys_open(fn_cp);
+  free(fn_cp);
+
   if (file == NULL)
     {
       printf ("load: %s: open failed\n", file_name);
@@ -347,10 +389,13 @@ load (const char *file_name, void (**eip) (void), void **esp, char** rest)
   *eip = (void (*) (void)) ehdr.e_entry;
 
   success = true;
+  file_deny_write(file);
+  thread_current()->self_file = file;
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  release_file_lock();
+  //file_close (file);
   return success;
 }
 

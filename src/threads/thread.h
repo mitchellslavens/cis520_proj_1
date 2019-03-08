@@ -110,6 +110,7 @@ struct thread
     struct file *self_file;
     struct list file_list;
     int open_file_count;
+    bool success;
 
 
 #ifdef USERPROG

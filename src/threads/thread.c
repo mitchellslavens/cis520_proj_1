@@ -311,6 +311,12 @@ thread_exit (void)
   process_exit ();
 #endif
 
+while(!list_empty(&thread_current()->child_list))
+{
+  struct proc_file *file = list_entry(list_pop_front(&thread_current()->child_list), struct child, elem);
+  free(file);
+}
+
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */

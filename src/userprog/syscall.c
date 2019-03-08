@@ -15,8 +15,11 @@
 #define USER_VADDR_START ((void *) 0x08084000)
 
 static void syscall_handler (struct intr_frame *);
+struct proc_file *list_search(struct list* file_list, int fd);
 
 //struct lock file_system_lock;
+
+
 
 void syscall_init (void)
 {
@@ -137,15 +140,54 @@ syscall_handler (struct intr_frame *f UNUSED)
       }
       else
       {
-        //struct proc_file *process_file = malloc(sizeof(*process_file));
-        //process_file->ptr =
+        struct proc_file *process_file = malloc(sizeof(*process_file));
+        process_file->proc_file_ptr = file_ptr;
+        process_file->fd = thread_current()->open_file_count;
+        thread_current()->open_file_count++;
+        list_push_back(&thread_current()->file_list, &process_file->elem);
+        f->eax = process_file->fd;
       }
       break;
     }
     case SYS_FILESIZE:
+    {
+      verify_ptr(ptr + 2);
+      acquire_file_lock();
+      f->eax = file_length(list_search(&thread_current()->file_list, *(ptr + 2))->proc_file_ptr);
+      release_file_lock();
       break;
+    }
     case SYS_READ:
+    {
+      //printf("in read\n");
+      verify_ptr(ptr + 8);
+      verify_ptr(*(ptr + 7));
+      if(*(ptr + 6) == 0)
+      {
+        uint8_t* buffer = *(ptr + 6);
+        for(int i = 0; i < *(ptr + 8); i++)
+        {
+          buffer[i] = input_getc();
+        }
+        f->eax = *(ptr + 8);
+      }
+      else
+      {
+        struct proc_file * file_ptr = list_search(&thread_current()->file_list, *(ptr + 6));
+
+        if(file_ptr == NULL)
+        {
+          f->eax = 1;
+        }
+        else
+        {
+          acquire_file_lock();
+          f->eax = file_read(file_ptr->proc_file_ptr, *(ptr + 7), *(ptr + 8));
+          release_file_lock();
+        }
+      }
       break;
+    }
     case SYS_WRITE:
     {
       verify_ptr(ptr + 8); // checks that the 'size' param is there
@@ -162,25 +204,33 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     }
     case SYS_SEEK:
+    {
+      verify_ptr(ptr + 6);
+      acquire_file_lock();
+      file_seek(list_search(&thread_current()->file_list, *(ptr + 5))->proc_file_ptr, *(ptr + 6));
+      release_file_lock();
       break;
+    }
     case SYS_TELL:
+    {
+      verify_ptr(ptr + 2);
+      acquire_file_lock();
+      f->eax = file_tell(list_search(&thread_current()->file_list, *(ptr + 2))->proc_file_ptr);
+      release_file_lock();
       break;
+    }
     case SYS_CLOSE:
+    {
+      verify_ptr(ptr + 2);
+      acquire_file_lock();
+      close_file(&thread_current()->file_list, *(ptr + 2));
+      release_file_lock();
       break;
+    }
     default:
-      break;
-
-
-
-
+      printf("The default case %d\n", *ptr);
   }
 
-  /*
-  if(f == NULL)
-    return;
-  printf ("system call!\n");
-  thread_exit ();
-  */
 }
 
 
@@ -211,4 +261,42 @@ int execute_process(const char* cmd_line)
     release_file_lock();
     return process_execute(cmd_line);
   }
+}
+
+/* Searches list until it finds the matching 'fd' and returns the file.
+*/
+struct proc_file* list_search(struct list* file_list, int fd)
+{
+  struct list_elem * file_list_elem;
+
+  for(file_list_elem = list_begin(file_list); file_list_elem != list_end(file_list); file_list_elem = list_next(file_list_elem))
+  {
+    struct proc_file *single_file = list_entry(file_list_elem, struct proc_file, elem);
+
+    if(single_file->fd == fd)
+    {
+      return single_file;
+    }
+  }
+
+  return NULL;
+}
+
+
+void close_file(struct list* file_list, int fd)
+{
+  struct list_elem *elem;
+  struct proc_file *process_file;
+
+  for(elem = list_begin(file_list); elem != list_end(file_list); elem = list_next(elem))
+  {
+    process_file = list_entry(elem, struct proc_file, elem);
+    if(process_file->fd == fd)
+    {
+      file_close(process_file->proc_file_ptr);
+      list_remove(elem);
+    }
+  }
+
+  free(process_file);
 }

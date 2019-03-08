@@ -47,13 +47,8 @@ memory for objects we used.
   Argument parsing/passing starts in process_execute where the file_name/function is given to the newly created
 thread. The file_name can contain arguments and strtok_r() is used to extract the name from the arguments and
 only the function name is passed to the thread. When start_process() is called the full file_name, function name
-and arguments, is passed. The function name is extracted with strtok_r() which becomes the value of file_name
-and the left over part is pointed to by 'char *rest'. To the load() function we added an additional parameter for
-any function arguments, changing the prototype to 'load (const char *cmdline, void (**eip) (void), void **esp, char** rest)'.
-The only other change to load() was the call to setup_stack() adding two additional parameters to the prototype
-becoming 'setup_stack (void **esp, const char *fn, char **rest)'. 'fn' points to the function name and 'rest' points
-to any parameters the function was given. The majority of changes happened in setup_stack() because now that
-functions can have arguments they need to be placed on the stack also.
+and arguments, are passed. The filename is extracted from file_name into a pointer and the file is opened. 
+After that, the stack pointer and file_name are passed to setup_stack)(). 
 
 After the page allocation and installation we create our argv array and other variables. We loop through
 the file_name/function name and the arguments copying each into a location on the stack. This is done
@@ -67,15 +62,26 @@ on the stack the stack is aligned to the next frame. Next the argv array is loop
 placing the memory location of the current index onto the stack with memcpy(). Argc, the variable holding the number
 of entries in argv, is placed on the stack next. 
 
+We ensure that we do not overflow the stack page by moving the stack pointer by the number of bytes of the argument 
+we are placing onto the stack. We also insert a NULL terminator at the end of the last argument to prevent access 
+beyond the stack.
 
 
 ---- RATIONALE ----
 
 >> A3: Why does Pintos implement strtok_r() but not strtok()?
 
+strtok() uses a static buffer so it is not thread safe. If multiple
+threads try to use this function they will utilize the same buffer.
+
 >> A4: In Pintos, the kernel separates commands into an executable name
 >> and arguments.  In Unix-like systems, the shell does this
 >> separation.  Identify at least two advantages of the Unix approach.
+
+1. Letting the shell handle the separation means less work for the Kernel. 
+2. From a security perspective, the less user-controlled variables being passed
+to the Kernel, the better. This is because the Kernel is basically all powerful 
+so the more shielded it can be from users the better. 
 
 SYSTEM CALLS
 ============
@@ -86,14 +92,52 @@ SYSTEM CALLS
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+thread.h changes:
+struct thread * parent - handler to the parent thread.
+struct list child_list - list of the children of this thread.
+int exit_code - the exit code when the thread is terminated. 
+tid_t wait_thread - the tid of the thread being waited for.
+struct semaphore child_sema - the semaphore used for waiting on a child.
+struct file *self_file - the thread's own file.
+struct list file_list - list of files referenced by this thread.
+int fd_cnt - the number of open files.
+bool success - this is set based on whether or not a child process is successfully loaded.
+
+struct child
+{
+	tid_t tid; - tid of child thread
+	struct list_elem elem; - for iteration of the list.
+	int exit_code; - the exit code of the child thread.
+	bool dead; - set to true if the child is terminated. 
+}
+
+in thread.c:
+struct lock file_lock - used to lock the file system.
+
+
 >> B2: Describe how file descriptors are associated with open files.
 >> Are file descriptors unique within the entire OS or just within a
 >> single process?
+
+They are unique to the process itself. When a process opens a file, it 
+sets the file descriptor of the file to the next file descriptor which is
+incremented per file opened. 
 
 ---- ALGORITHMS ----
 
 >> B3: Describe your code for reading and writing user data from the
 >> kernel.
+
+For SYS_WRITE we get the three parameters, the file descriptor, the buffer 
+to write to, and the number of bytes to write. If the file descriptor is 1,
+we write to the console. Otherwise we find the file descriptor in our list of
+files and then we file_write to it. We always use the file_lock whenever writing
+to a file. 
+
+For SYS_READ, we get our three parameters, the file descriptor, the buffer to 
+write to, and the number of bytes to write. If the file descriptor is 0, we get
+user input from the input buffer. Otherwise we search our list of files and read from
+the file matching the file descriptor. Again we lock whenever we read.  
 
 >> B4: Suppose a system call causes a full page (4,096 bytes) of data
 >> to be copied from user space into the kernel.  What is the least
@@ -104,6 +148,15 @@ SYSTEM CALLS
 
 >> B5: Briefly describe your implementation of the "wait" system call
 >> and how it interacts with process termination.
+
+Our wait system call calls process_wait with the tid of the child that our
+current thread wants to wait on. Then, if the child is found in the child list, 
+we set the wait_thread of the current thread to the child's tid. Otherwise we return
+-1 which specifies an error. Then, assuming no error, we check if the child is dead,
+and if it is not we block the current thread by calling sema_down on the child_sema. 
+
+When sema_up is called, we remove the child from the child_list and we return the 
+exit_code of the child that just finished executing. 
 
 >> B6: Any access to user program memory at a user-specified address
 >> can fail due to a bad pointer value.  Such accesses must cause the

@@ -109,7 +109,7 @@ struct thread
     struct semaphore child_sema;
     struct file *self_file;
     struct list file_list;
-    int open_file_count;
+    int fd_cnt;
     bool success;
 
 

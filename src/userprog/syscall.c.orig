@@ -174,8 +174,8 @@ syscall_handler (struct intr_frame *f UNUSED)
       {
         struct proc_file *process_file = malloc(sizeof(*process_file));
         process_file->proc_file_ptr = file_ptr;
-        process_file->fd = thread_current()->open_file_count;
-        thread_current()->open_file_count++;
+        process_file->fd = thread_current()->fd_cnt;
+        thread_current()->fd_cnt++;
         list_push_back(&thread_current()->file_list, &process_file->elem);
         f->eax = process_file->fd;
       }

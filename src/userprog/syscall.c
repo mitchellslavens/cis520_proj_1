@@ -15,13 +15,10 @@
 #include "devices/shutdown.h"
 #include "devices/input.h"
 
-#define USER_VADDR_START ((void *) 0x08084000)
 
 static void syscall_handler (struct intr_frame *);
 struct proc_file *list_search(struct list* file_list, int fd);
 int execute_process(const char* cmd_line);
-
-//struct lock file_system_lock;
 
 extern bool running;
 
@@ -35,7 +32,7 @@ void syscall_init (void)
 address range and that a page exists at the pointer location. */
 void verify_ptr(const void * vaddr)
 {
-  if (!is_user_vaddr(vaddr))
+  if (!is_user_vaddr(vaddr) || vaddr < (void *) 0x08048000)
   {
     //printf("not a valid vaddr\n");
     term_process(-1);
@@ -153,8 +150,8 @@ syscall_handler (struct intr_frame *f UNUSED)
       {
         struct proc_file *process_file = malloc(sizeof(*process_file));
         process_file->proc_file_ptr = file_ptr;
-        process_file->fd = thread_current()->open_file_count;
-        thread_current()->open_file_count++;
+        process_file->fd = thread_current()->fd_cnt;
+        thread_current()->fd_cnt++;
         list_push_back(&thread_current()->file_list, &process_file->elem);
         f->eax = process_file->fd;
       }

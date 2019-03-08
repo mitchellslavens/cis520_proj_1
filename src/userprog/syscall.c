@@ -1,4 +1,5 @@
 #include "userprog/syscall.h"
+#include "userprog/pagedir.h"
 #include <stdio.h>
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
@@ -26,11 +27,13 @@ void verify_ptr(const void * vaddr)
 {
   if (!is_user_vaddr(vaddr))
   {
+    printf("not a valid vaddr\n");
     term_process(-1);
   }
   void *ptr = pagedir_get_page(thread_current()->pagedir, vaddr);
   if(!ptr)
   {
+    printf("get page is screwed up\n");
     term_process(-1);
   }
 }
@@ -38,6 +41,7 @@ void verify_ptr(const void * vaddr)
 /* Call this to forcefully terminate a process */
 void term_process(int code)
 {
+  printf("in term_process\n");
   struct list_elem *child_elem = list_begin(&thread_current()->parent->child_list);
   // TODO: is head.next the tail or null for an empty list?
   do
@@ -93,15 +97,14 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     case SYS_WRITE:
     {
-      //printf("in write\n");
-      verify_ptr(ptr + 7); // checks that the 'size' param is there
-      verify_ptr(*(ptr + 6)); // goes to the address of the buffer and checks it's validity
-      if(*(ptr + 5) == 1) // if the 'fd' is 1 it writes to console
+      verify_ptr(ptr + 8); // checks that the 'size' param is there
+      verify_ptr(*(ptr + 7)); // goes to the address of the buffer and checks it's validity
+      if(*(ptr + 6) == 1) // if the 'fd' is 1 it writes to console
       {
         // defined in lib/kernel/console.c
         // void putbuf (const char *buffer, size_t n)
-        putbuf(*(ptr + 6), *(ptr+7));
-        f->eax = *(ptr+7);
+        putbuf(*(ptr + 7), *(ptr+8));
+        f->eax = *(ptr+8);
       }
 
 

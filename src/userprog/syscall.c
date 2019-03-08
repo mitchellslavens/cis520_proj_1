@@ -11,11 +11,11 @@
 
 static void syscall_handler (struct intr_frame *);
 
-struct lock file_system_lock;
+//struct lock file_system_lock;
 
 void syscall_init (void)
 {
-  lock_init(&file_system_lock);
+  //lock_init(&file_system_lock);
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
@@ -38,7 +38,7 @@ void verify_ptr(const void * vaddr)
 void term_process(int code)
 {
   struct list_elem *child_elem = list_begin(&thread_current()->parent->child_list);
-
+  // TODO: is head.next the tail or null for an empty list?
   do
   {
     // TODO: Do we need a check to make sure we actually have an element?

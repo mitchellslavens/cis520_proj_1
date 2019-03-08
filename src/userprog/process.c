@@ -29,8 +29,7 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp, char** r
 tid_t
 process_execute (const char *file_name)
 {
-  //printf("\nMADE IT HERE\n");
-  //printf("\n%s\n", file_name);
+
   char *fn_copy;
   tid_t tid;
 
@@ -98,12 +97,35 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED)
+process_wait (tid_t child_tid)
 {
-  while(true);
-  //while(true)
-    //printf("process_wait\n");     //says in write up we may want to change this to
-                                    //infinite loop; don't know why; does not work when this is done
+  struct list_elem *elem;
+  struct child *child = NULL;
+  struct list_elem *found_elem = NULL;
+
+  for(elem = list_begin(&thread_current()->child_list); elem != list_end(&thread_current()->child_list); elem = list_next(elem))
+  {
+    struct child *c = list_entry(elem, struct child, elem);
+    if(c->tid == child_tid)
+    {
+      child = c;
+      found_elem = elem;
+    }
+  }
+
+  if (!child || !found_elem)
+  {
+    return -1;
+  }
+  thread_current()->wait_thread = child->tid;
+
+  if (!child->dead)
+  {
+    sema_down(&thread_current()->child_sema);
+  }
+
+  list_remove(found_elem);
+  return child->exit_code;
 }
 
 /* Free the current process's resources. */
@@ -235,33 +257,6 @@ load (const char *file_name, void (**eip) (void), void **esp, char** rest)
   if (t->pagedir == NULL)
     goto done;
   process_activate ();
-  //printf("\nafter process activate\n");
-  //******************************************************************************
-  /*
-  char *peter = *rest;
-  int arg_count = 0;
-  printf("\n%s\n", *rest);
-
-  for(char c = *peter; c != '\0'; c = *++peter)
-  {
-    printf("Chode_%c\n", c);
-    //printf("2.%c\n", rest[0]); //PuTTY\n
-    //printf("3.%c\n", rest[0][0]);
-    //printf("4.%c\n", rest[1][0]); //page fault
-    //printf("5.%c\n", rest[0][1]); //prints nothing
-    //printf("4.%c\n", &rest[0]); //T
-
-    if(c == ' ')
-    {
-      //printf("Found null char\n");
-      printf("space\n");
-      arg_count++;
-    }
-  }
-  printf("arg count: %d\n", arg_count);
-  */
-  //******************************************************************************
-
 
   /* Open executable file. */
   file = filesys_open (file_name);
@@ -271,7 +266,6 @@ load (const char *file_name, void (**eip) (void), void **esp, char** rest)
       printf ("load: %s: open failed\n", file_name);
       goto done;
     }
-    //printf("\nafter file system open\n");
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
       || memcmp (ehdr.e_ident, "\177ELF\1\1\1", 7)
@@ -287,7 +281,6 @@ load (const char *file_name, void (**eip) (void), void **esp, char** rest)
     //printf("\nafter file read\n");
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
-  printf("here\n");
   for (i = 0; i < ehdr.e_phnum; i++)
     {
       struct Elf32_Phdr phdr;
@@ -346,7 +339,6 @@ load (const char *file_name, void (**eip) (void), void **esp, char** rest)
         }
     }
 
-    printf("\nsetup_stack\n");
   /* Set up stack. */
   if (!setup_stack (esp, file_name, rest))
     goto done;
@@ -559,7 +551,7 @@ setup_stack (void **esp, const char *fn, char **rest)
     memcpy(*esp, &argv[argc], sizeof(void *));
     free(argv);
 
-    hex_dump(0, *esp, (int) ((size_t) PHYS_BASE - (size_t) *esp), true);
+    //hex_dump(0, *esp, (int) ((size_t) PHYS_BASE - (size_t) *esp), true);
     return success;
 
 }

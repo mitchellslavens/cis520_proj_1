@@ -103,8 +103,7 @@ struct thread
 
     /* For the second project   */
     struct thread *parent;              /* Holds a pointer to the parent thread */
-    struct list child_list;             /* Holds pointers to child threads */
-    bool has_parent;
+    struct list child_list;             /* Holds pointers to child structs */
     int exit_code;
     tid_t wait_thread;
     struct semaphore child_sema;
@@ -122,6 +121,14 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+  };
+
+  struct child
+  {
+    tid_t tid;
+    struct list_elem elem;
+    int exit_code;
+    bool dead;
   };
 
 /* If false (default), use round-robin scheduler.
@@ -172,6 +179,6 @@ void check_highest_priority(void);
 void donate(void);
 void remove_donations(struct lock *lock);
 void restore_priority(void);
-void acquire_file_lock();
-void release_file_lock();
+void acquire_file_lock(void);
+void release_file_lock(void);
 #endif /* threads/thread.h */

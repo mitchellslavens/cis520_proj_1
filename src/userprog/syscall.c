@@ -11,6 +11,8 @@
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 #include "threads/malloc.h"
+#include <string.h>
+#include "devices/shutdown.h"
 
 #define USER_VADDR_START ((void *) 0x08084000)
 
@@ -19,7 +21,7 @@ struct proc_file *list_search(struct list* file_list, int fd);
 
 //struct lock file_system_lock;
 
-
+extern bool running;
 
 void syscall_init (void)
 {
@@ -33,13 +35,13 @@ void verify_ptr(const void * vaddr)
 {
   if (!is_user_vaddr(vaddr))
   {
-    printf("not a valid vaddr\n");
+    //printf("not a valid vaddr\n");
     term_process(-1);
   }
   void *ptr = pagedir_get_page(thread_current()->pagedir, vaddr);
   if(!ptr)
   {
-    printf("get page is screwed up\n");
+    //printf("get page is screwed up\n");
     term_process(-1);
   }
 }
@@ -47,8 +49,9 @@ void verify_ptr(const void * vaddr)
 /* Call this to forcefully terminate a process */
 void term_process(int code)
 {
+  //printf("%d\n", code);
   struct list_elem *child_elem ;
-  printf("in term_process\n");
+  //printf("in term_process\n");
   // TODO: is head.next the tail or null for an empty list?
   for(child_elem = list_begin(&thread_current()->parent->child_list); child_elem != list_end(&thread_current()->parent->child_list); child_elem = list_next(child_elem))
   {
@@ -80,12 +83,14 @@ syscall_handler (struct intr_frame *f UNUSED)
   switch(sys_call)
   {
     case SYS_HALT:
+    //  printf("IN SYS_HALT\n");
       shutdown_power_off();
       break;
     case SYS_EXIT:
     {
-      verify_ptr(ptr+2);
-      term_process(*(ptr+2));
+      //printf("IN SYS_EXIT\n");
+      verify_ptr(ptr+1);
+      term_process(*(ptr+1));
       break;
     }
     case SYS_EXEC:
@@ -98,12 +103,14 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     case SYS_WAIT:
     {
+      //printf("IN SYS_WAIT\n");
       verify_ptr(ptr+2);
       f->eax = process_wait(*(ptr+2));
       break;
     }
     case SYS_CREATE:
     {
+      //printf("IN SYS_CREATE\n");
       verify_ptr(ptr + 6);
       verify_ptr(*(ptr + 5));
       acquire_file_lock();
@@ -113,6 +120,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     case SYS_REMOVE:
     {
+      //printf("IN SYS_REMOVE\n");
       verify_ptr(ptr + 2);
       verify_ptr(*(ptr + 2));
       acquire_file_lock();
@@ -129,6 +137,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     case SYS_OPEN:
     {
+      //printf("IN SYS_OPEN\n");
       verify_ptr(ptr + 2);
       verify_ptr(*(ptr + 2));
       acquire_file_lock();
@@ -151,6 +160,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     case SYS_FILESIZE:
     {
+      //printf("IN SYS_FILESIZE\n");
       verify_ptr(ptr + 2);
       acquire_file_lock();
       f->eax = file_length(list_search(&thread_current()->file_list, *(ptr + 2))->proc_file_ptr);
@@ -159,6 +169,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     case SYS_READ:
     {
+      //printf("IN SYS_READ\n");
       //printf("in read\n");
       verify_ptr(ptr + 8);
       verify_ptr(*(ptr + 7));
@@ -190,6 +201,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     case SYS_WRITE:
     {
+      //printf("IN SYS_WRITE\n");
       verify_ptr(ptr + 8); // checks that the 'size' param is there
       verify_ptr(*(ptr + 7)); // goes to the address of the buffer and checks it's validity
       if(*(ptr + 6) == 1) // if the 'fd' is 1 it writes to console
@@ -205,6 +217,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     case SYS_SEEK:
     {
+      //printf("IN SYS_SEEK\n");
       verify_ptr(ptr + 6);
       acquire_file_lock();
       file_seek(list_search(&thread_current()->file_list, *(ptr + 5))->proc_file_ptr, *(ptr + 6));
@@ -213,6 +226,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     case SYS_TELL:
     {
+      //printf("IN SYS_TELL\n");
       verify_ptr(ptr + 2);
       acquire_file_lock();
       f->eax = file_tell(list_search(&thread_current()->file_list, *(ptr + 2))->proc_file_ptr);
@@ -221,6 +235,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     case SYS_CLOSE:
     {
+      //printf("IN SYS_CLOSE\n");
       verify_ptr(ptr + 2);
       acquire_file_lock();
       close_file(&thread_current()->file_list, *(ptr + 2));

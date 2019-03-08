@@ -158,6 +158,9 @@ process_exit (void)
     term_process(-1);
   }
 
+  int exit_code = cur->exit_code ;
+  printf("%s: exit(%d)\n",cur->name,exit_code);
+
   acquire_file_lock();
   file_close(thread_current()->self_file);
   struct list_elem *elem;

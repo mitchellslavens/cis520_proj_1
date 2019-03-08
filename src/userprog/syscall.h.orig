@@ -1,0 +1,21 @@
+#ifndef USERPROG_SYSCALL_H
+#define USERPROG_SYSCALL_H
+#include "threads/thread.h"
+
+void syscall_init (void);
+void term_process (int);
+void verify_ptr (const void *);
+<<<<<<< HEAD
+void close_file(struct list*, int);
+=======
+void close_file(struct list*, int );
+>>>>>>> d13d373799a3521b3b6ea3228581b68013f4d918
+
+struct proc_file
+{
+  struct file* proc_file_ptr;
+  int fd;
+  struct list_elem elem;
+};
+
+#endif /* userprog/syscall.h */

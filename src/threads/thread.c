@@ -193,6 +193,11 @@ thread_create (const char *name, int priority,
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
+  struct child *c = malloc(sizeof(*c));
+  c->tid = tid;
+  c->exit_code = t->exit_code;
+  c->dead = false;
+  list_push_back(&running_thread()->child_list, &c->elem);
 
   enum intr_level old_level = intr_disable();
 

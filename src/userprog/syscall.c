@@ -81,6 +81,7 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_EXIT:
     {
       verify_ptr(ptr+2);
+      printf("in sys_exit\n");
       term_process(*(ptr+2));
       break;
     }

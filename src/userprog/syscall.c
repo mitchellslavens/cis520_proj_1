@@ -6,6 +6,7 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "process.h"
+#include "list.h"
 
 #define USER_VADDR_START ((void *) 0x08084000)
 
@@ -91,8 +92,21 @@ syscall_handler (struct intr_frame *f UNUSED)
       printf("in read\n");
       break;
     case SYS_WRITE:
-      printf("in write\n");
+    {
+      //printf("in write\n");
+      verify_ptr(ptr + 7); // checks that the 'size' param is there
+      verify_ptr(*(ptr + 6)); // goes to the address of the buffer and checks it's validity
+      if(*(ptr + 5) == 1) // if the 'fd' is 1 it writes to console
+      {
+        // defined in lib/kernel/console.c
+        // void putbuf (const char *buffer, size_t n)
+        putbuf(*(ptr + 6), *(ptr+7));
+        f->eax = *(ptr+7);
+      }
+
+
       break;
+    }
     case SYS_SEEK:
       break;
     case SYS_TELL:

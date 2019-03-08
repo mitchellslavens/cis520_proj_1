@@ -509,7 +509,7 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init(&t->child_list);
   list_init(&t->file_list);
   sema_init(&t->child_sema, 0);
-  t->self = NULL;
+  t->self_file = NULL;
   t->wait_thread = 0;
   t->exit_code = -555;
   t->parent = running_thread();

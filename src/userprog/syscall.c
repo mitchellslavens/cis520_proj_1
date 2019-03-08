@@ -13,11 +13,13 @@
 #include "threads/malloc.h"
 #include <string.h>
 #include "devices/shutdown.h"
+#include "devices/input.h"
 
 #define USER_VADDR_START ((void *) 0x08084000)
 
 static void syscall_handler (struct intr_frame *);
 struct proc_file *list_search(struct list* file_list, int fd);
+int execute_process(const char* cmd_line);
 
 //struct lock file_system_lock;
 
@@ -96,16 +98,16 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_EXEC:
     {
       //printf("In SYS_EXEC\n");
-      verify_ptr(ptr + 2);
-      verify_ptr(*(ptr + 2));
-      f->eax = execute_process(*(ptr + 2));
+      verify_ptr(ptr + 1);
+      verify_ptr(*(ptr + 1));
+      f->eax = execute_process(*(ptr + 1));
       break;
     }
     case SYS_WAIT:
     {
       //printf("IN SYS_WAIT\n");
-      verify_ptr(ptr+2);
-      f->eax = process_wait(*(ptr+2));
+      verify_ptr(ptr+1);
+      f->eax = process_wait(*(ptr+1));
       break;
     }
     case SYS_CREATE:
@@ -121,10 +123,10 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_REMOVE:
     {
       //printf("IN SYS_REMOVE\n");
-      verify_ptr(ptr + 2);
-      verify_ptr(*(ptr + 2));
+      verify_ptr(ptr + 1);
+      verify_ptr(*(ptr + 1));
       acquire_file_lock();
-      if(filesys_remove(*(ptr + 2)) == NULL)
+      if(filesys_remove(*(ptr + 1)) == NULL)
       {
         f->eax = false;
       }
@@ -138,10 +140,10 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_OPEN:
     {
       //printf("IN SYS_OPEN\n");
-      verify_ptr(ptr + 2);
-      verify_ptr(*(ptr + 2));
+      verify_ptr(ptr + 1);
+      verify_ptr(*(ptr + 1));
       acquire_file_lock();
-      struct file * file_ptr = filesys_open(*(ptr + 2));
+      struct file * file_ptr = filesys_open(*(ptr + 1));
       release_file_lock();
       if(file_ptr == NULL)
       {
@@ -161,16 +163,15 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_FILESIZE:
     {
       //printf("IN SYS_FILESIZE\n");
-      verify_ptr(ptr + 2);
+      verify_ptr(ptr + 1);
       acquire_file_lock();
-      f->eax = file_length(list_search(&thread_current()->file_list, *(ptr + 2))->proc_file_ptr);
+      f->eax = file_length(list_search(&thread_current()->file_list, *(ptr + 1))->proc_file_ptr);
       release_file_lock();
       break;
     }
     case SYS_READ:
     {
       //printf("IN SYS_READ\n");
-      //printf("in read\n");
       verify_ptr(ptr + 8);
       verify_ptr(*(ptr + 7));
       if(*(ptr + 6) == 0)
@@ -211,8 +212,18 @@ syscall_handler (struct intr_frame *f UNUSED)
         putbuf(*(ptr + 7), *(ptr+8));
         f->eax = *(ptr+8);
       }
-
-
+      else
+      {
+        struct proc_file *fptr = list_search(&thread_current()->file_list, *(ptr+6));
+        if(fptr==NULL)
+        f->eax=-1;
+        else
+        {
+          acquire_file_lock();
+          f->eax = file_write (fptr->proc_file_ptr, *(ptr+7), *(ptr+8));
+          release_file_lock();
+        }
+      }
       break;
     }
     case SYS_SEEK:
@@ -227,18 +238,18 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_TELL:
     {
       //printf("IN SYS_TELL\n");
-      verify_ptr(ptr + 2);
+      verify_ptr(ptr + 1);
       acquire_file_lock();
-      f->eax = file_tell(list_search(&thread_current()->file_list, *(ptr + 2))->proc_file_ptr);
+      f->eax = file_tell(list_search(&thread_current()->file_list, *(ptr + 1))->proc_file_ptr);
       release_file_lock();
       break;
     }
     case SYS_CLOSE:
     {
       //printf("IN SYS_CLOSE\n");
-      verify_ptr(ptr + 2);
+      verify_ptr(ptr + 1);
       acquire_file_lock();
-      close_file(&thread_current()->file_list, *(ptr + 2));
+      close_file(&thread_current()->file_list, *(ptr + 1));
       release_file_lock();
       break;
     }
@@ -301,7 +312,7 @@ struct proc_file* list_search(struct list* file_list, int fd)
 void close_file(struct list* file_list, int fd)
 {
   struct list_elem *elem;
-  struct proc_file *process_file;
+  struct proc_file *process_file = NULL;
 
   for(elem = list_begin(file_list); elem != list_end(file_list); elem = list_next(elem))
   {

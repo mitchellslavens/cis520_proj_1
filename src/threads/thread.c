@@ -199,6 +199,7 @@ thread_create (const char *name, int priority,
   c->dead = false;
   list_push_back(&running_thread()->child_list, &c->elem);
 
+
   enum intr_level old_level = intr_disable();
 
   /* Stack frame for kernel_thread(). */
@@ -730,12 +731,12 @@ void restore_priority(void)
 
 /* proj 2 below */
 
-void acquire_file_lock()
+void acquire_file_lock(void)
 {
   lock_acquire(&file_lock);
 }
 
-void release_file_lock()
+void release_file_lock(void)
 {
   lock_release(&file_lock);
 }

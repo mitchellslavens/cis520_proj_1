@@ -8,6 +8,8 @@
 #include "threads/vaddr.h"
 #include "process.h"
 #include "list.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
 
 #define USER_VADDR_START ((void *) 0x08084000)
 
@@ -41,10 +43,10 @@ void verify_ptr(const void * vaddr)
 /* Call this to forcefully terminate a process */
 void term_process(int code)
 {
+  struct list_elem *child_elem ;
   printf("in term_process\n");
-  struct list_elem *child_elem = list_begin(&thread_current()->parent->child_list);
   // TODO: is head.next the tail or null for an empty list?
-  do
+  for(child_elem = list_begin(&thread_current()->parent->child_list); child_elem != list_end(&thread_current()->parent->child_list); child_elem = list_next(child_elem))
   {
     // TODO: Do we need a check to make sure we actually have an element?
     struct child *child_thread = list_entry(child_elem, struct child, elem);
@@ -53,8 +55,7 @@ void term_process(int code)
       child_thread->dead = true;
       child_thread->exit_code = code;
     }
-    child_elem = list_next(child_elem);
-  } while(child_elem != list_end(&thread_current()->parent->child_list));
+  }
 
   thread_current()->exit_code = code;
 
@@ -78,14 +79,31 @@ syscall_handler (struct intr_frame *f UNUSED)
       shutdown_power_off();
       break;
     case SYS_EXIT:
+    {
+      verify_ptr(ptr+2);
+      term_process(*(ptr+2));
       break;
+    }
     case SYS_EXEC:
-      printf("In SYS_EXEC\n");
+    {
+      //printf("In SYS_EXEC\n");
+      verify_ptr(ptr + 2);
+      verify_ptr(*(ptr + 2));
+      f->eax = execute_process(*(ptr + 2));
       break;
+    }
     case SYS_WAIT:
+    {
+      verify_ptr(ptr+2);
+      f->eax = process_wait(*(ptr+2));
       break;
+    }
     case SYS_CREATE:
+    {
+      verify_ptr(ptr+6);
+      verify_ptr(*(ptr + 4));
       break;
+    }
     case SYS_REMOVE:
       break;
     case SYS_OPEN:
@@ -130,4 +148,34 @@ syscall_handler (struct intr_frame *f UNUSED)
   printf ("system call!\n");
   thread_exit ();
   */
+}
+
+
+/* Runs the process passed to the cmd_line.
+   Checks
+*/
+int execute_process(const char* cmd_line)
+{
+  acquire_file_lock();
+
+  char *rest;
+  char *filename_copy = malloc(strlen(cmd_line) + 1);
+  strlcpy(filename_copy, cmd_line, strlen(cmd_line) + 1);
+
+  filename_copy = strtok_r(filename_copy, " ", &rest);
+
+  // If filename_copy doesn't exist it fails
+  struct file* open_file = filesys_open(filename_copy);
+
+  if(open_file==NULL)
+  {
+    release_file_lock();
+    return -1;
+  }
+  else
+  {
+    file_close(open_file);
+    release_file_lock();
+    return process_execute(cmd_line);
+  }
 }

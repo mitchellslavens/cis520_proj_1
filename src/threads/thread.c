@@ -101,6 +101,7 @@ thread_init (void)
   list_init (&all_list);
   lock_init(&set_priority_lock);
   lock_init(&get_priority_lock);
+  lock_init(&file_lock);
   //list_init (&blocked_list);
 
   /* Set up a thread structure for the running thread. */

@@ -81,7 +81,6 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_EXIT:
     {
       verify_ptr(ptr+2);
-      printf("in sys_exit\n");
       term_process(*(ptr+2));
       break;
     }
@@ -129,7 +128,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       verify_ptr(ptr + 2);
       verify_ptr(*(ptr + 2));
       acquire_file_lock();
-      struct file * file_ptr = filesys_open(*(p + 2));
+      struct file * file_ptr = filesys_open(*(ptr + 2));
       release_file_lock();
       if(file_ptr == NULL)
       {
@@ -138,7 +137,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       else
       {
         //struct proc_file *process_file = malloc(sizeof(*process_file));
-        //process_file->ptr = 
+        //process_file->ptr =
       }
       break;
     }

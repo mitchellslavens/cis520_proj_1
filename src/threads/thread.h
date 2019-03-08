@@ -110,14 +110,6 @@ struct thread
     struct file *self_file;
     struct list file_list;
     int open_file_count;
-    struct child
-    {
-      tid_t tid;
-      struct list_elem elem;
-      int exit_code;
-      bool dead;
-    };
-
 
 
 #ifdef USERPROG

@@ -172,8 +172,6 @@ void check_highest_priority(void);
 void donate(void);
 void remove_donations(struct lock *lock);
 void restore_priority(void);
-
-/* Proj 2 */
-void acquire_file_lock();
-void release_file_lock();
+void acquire_file_lock(void);
+void release_file_lock(void);
 #endif /* threads/thread.h */

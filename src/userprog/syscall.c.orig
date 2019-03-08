@@ -45,10 +45,11 @@ void term_process(int code)
 {
 <<<<<<< HEAD
   struct list_elem *child_elem ;
+  printf("in term_process\n");
 =======
   printf("in term_process\n");
   struct list_elem *child_elem = list_begin(&thread_current()->parent->child_list);
->>>>>>> echo seemingly working
+>>>>>>> 673e66acc42082cfe3f4c2d391b7b8b40e1bcfad
   // TODO: is head.next the tail or null for an empty list?
   for(child_elem = list_begin(&thread_current()->parent->child_list); child_elem != list_end(&thread_current()->parent->child_list); child_elem = list_next(child_elem))
   {
@@ -119,11 +120,11 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     case SYS_WRITE:
     {
-<<<<<<< HEAD
-      //printf("in write\n");
-=======
->>>>>>> echo seemingly working
       verify_ptr(ptr + 8); // checks that the 'size' param is there
+<<<<<<< HEAD
+      verify_ptr(ptr + 8); // checks that the 'size' param is there
+=======
+>>>>>>> 673e66acc42082cfe3f4c2d391b7b8b40e1bcfad
       verify_ptr(*(ptr + 7)); // goes to the address of the buffer and checks it's validity
       if(*(ptr + 6) == 1) // if the 'fd' is 1 it writes to console
       {

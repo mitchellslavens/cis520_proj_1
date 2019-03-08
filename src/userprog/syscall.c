@@ -101,14 +101,47 @@ syscall_handler (struct intr_frame *f UNUSED)
     }
     case SYS_CREATE:
     {
-      verify_ptr(ptr+6);
-      verify_ptr(*(ptr + 4));
+      verify_ptr(ptr + 6);
+      verify_ptr(*(ptr + 5));
+      acquire_file_lock();
+      f->eax = filesys_create(*(ptr+5), *(ptr+6));
+      release_file_lock();
       break;
     }
     case SYS_REMOVE:
+    {
+      verify_ptr(ptr + 2);
+      verify_ptr(*(ptr + 2));
+      acquire_file_lock();
+      if(filesys_remove(*(ptr + 2)) == NULL)
+      {
+        f->eax = false;
+      }
+      else
+      {
+        f->eax = true;
+      }
+      release_file_lock();
       break;
+    }
     case SYS_OPEN:
+    {
+      verify_ptr(ptr + 2);
+      verify_ptr(*(ptr + 2));
+      acquire_file_lock();
+      struct file * file_ptr = filesys_open(*(p + 2));
+      release_file_lock();
+      if(file_ptr == NULL)
+      {
+        f->eax = -1;
+      }
+      else
+      {
+        //struct proc_file *process_file = malloc(sizeof(*process_file));
+        //process_file->ptr = 
+      }
       break;
+    }
     case SYS_FILESIZE:
       break;
     case SYS_READ:

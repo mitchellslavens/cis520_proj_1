@@ -297,14 +297,15 @@ load (const char *file_name, void (**eip) (void), void **esp, char** rest)
   if (t->pagedir == NULL)
     goto done;
   process_activate ();
-  char *fn_cp = malloc (strlen(file_name)+1);
+  /*char *fn_cp = malloc (strlen(file_name)+1);
   strlcpy(fn_cp, file_name, strlen(file_name)+1);
   char * save_p;
-  fn_cp = strtok_r(fn_cp," ", &save_p);
+  fn_cp = strtok_r(fn_cp," ", &save_p);*/
 
   /* Open executable file. */
-  file = filesys_open(fn_cp);
-  free(fn_cp);
+
+  file = filesys_open(file_name);
+  //free(fn_cp);
 
   if (file == NULL)
     {

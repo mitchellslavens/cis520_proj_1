@@ -8,6 +8,7 @@
 #include "process.h"
 #include "list.h"
 #include "filesys/filesys.h"
+#include "filesys/file.h"
 
 #define USER_VADDR_START ((void *) 0x08084000)
 
@@ -166,7 +167,7 @@ int execute_process(const char* cmd_line)
   if(open_file==NULL)
   {
     release_file_lock();
-    return -1
+    return -1;
   }
   else
   {

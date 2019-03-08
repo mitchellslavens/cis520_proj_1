@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include <threads/synch.h>
+#include <kernel/list.h>
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -107,7 +108,9 @@ struct thread
     int exit_code;
     tid_t wait_thread;
     struct semaphore child_sema;
-
+    struct file *self_file;
+    struct list file_list;
+    int open_file_count;
 
 
 

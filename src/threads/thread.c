@@ -40,6 +40,9 @@ static struct lock tid_lock;
 static struct lock set_priority_lock;
 static struct lock get_priority_lock;
 
+/*Proj2 below here*/
+struct lock file_lock;
+
 /* Stack frame for kernel_thread(). */
 struct kernel_thread_frame
   {
@@ -504,10 +507,13 @@ init_thread (struct thread *t, const char *name, int priority)
   list_init(&t->donation_list);
   /* proj2 below this */
   list_init(&t->child_list);
+  list_init(&t->file_list);
   sema_init(&t->child_sema, 0);
+  t->self = NULL;
   t->wait_thread = 0;
   t->exit_code = -555;
   t->parent = running_thread();
+  t->open_file_count = 2;
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -714,4 +720,16 @@ void restore_priority(void)
   {
     curr_thread->priority = list_entry(list_front(&curr_thread->donation_list), struct thread, donation_elem)->priority;
   }
+}
+
+/* proj 2 below */
+
+void acquire_file_lock()
+{
+  lock_acquire(&file_lock);
+}
+
+void release_file_lock()
+{
+  lock_release(&file_lock);
 }

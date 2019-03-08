@@ -116,7 +116,6 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_WRITE:
     {
       verify_ptr(ptr + 8); // checks that the 'size' param is there
-      verify_ptr(ptr + 8); // checks that the 'size' param is there
       verify_ptr(*(ptr + 7)); // goes to the address of the buffer and checks it's validity
       if(*(ptr + 6) == 1) // if the 'fd' is 1 it writes to console
       {

@@ -47,12 +47,12 @@ void term_process(int code)
   do
   {
     // TODO: Do we need a check to make sure we actually have an element?
-    struct thread *child_thread = list_entry(child_elem, struct thread, elem);
+    struct child *child_thread = list_entry(child_elem, struct child, elem);
     if (child_thread->tid == thread_current()->tid)
     {
-      child_thread->has_parent = true;
+      child_thread->dead = true;
+      child_thread->exit_code = code;
     }
-
     child_elem = list_next(child_elem);
   } while(child_elem != list_end(&thread_current()->parent->child_list));
 

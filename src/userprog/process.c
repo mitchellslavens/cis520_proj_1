@@ -98,12 +98,35 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED)
+process_wait (tid_t child_tid)
 {
-  while(true);
-  //while(true)
-    //printf("process_wait\n");     //says in write up we may want to change this to
-                                    //infinite loop; don't know why; does not work when this is done
+  struct list_elem *elem;
+  struct child *child = NULL;
+  struct list_elem *found_elem = NULL;
+
+  for(elem = list_begin(&thread_current()->child_list); elem != list_end(&thread_current()->child_list); elem = list_next(elem))
+  {
+    struct child *c = list_entry(elem, struct child, elem);
+    if(c->tid == child_tid)
+    {
+      child = c;
+      found_elem = e;
+    }
+  }
+
+  if (!ch || !e1)
+  {
+    return -1;
+  }
+  thread_current()->wait_thread = ch->tid;
+
+  if (!ch->used)
+  {
+    sema_down(&thread_current()->child_sema);
+  }
+
+  list_remove(e1);
+  return ch->exit_code;
 }
 
 /* Free the current process's resources. */

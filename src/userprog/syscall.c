@@ -7,6 +7,7 @@
 #include "threads/vaddr.h"
 #include "process.h"
 #include "list.h"
+#include "filesys/filesys.h"
 
 #define USER_VADDR_START ((void *) 0x08084000)
 
@@ -38,9 +39,9 @@ void verify_ptr(const void * vaddr)
 /* Call this to forcefully terminate a process */
 void term_process(int code)
 {
-  struct list_elem *child_elem = list_begin(&thread_current()->parent->child_list);
+  struct list_elem *child_elem ;
   // TODO: is head.next the tail or null for an empty list?
-  do
+  for(child_elem = list_begin(&thread_current()->parent->child_list); child_elem != list_end(&thread_current()->parent->child_list); child_elem = list_next(child_elem))
   {
     // TODO: Do we need a check to make sure we actually have an element?
     struct thread *child_thread = list_entry(child_elem, struct thread, elem);
@@ -49,8 +50,7 @@ void term_process(int code)
       child_thread->has_parent = true;
     }
 
-    child_elem = list_next(child_elem);
-  } while(child_elem != list_end(&thread_current()->parent->child_list));
+  }
 
   thread_current()->exit_code = code;
 
@@ -74,14 +74,31 @@ syscall_handler (struct intr_frame *f UNUSED)
       shutdown_power_off();
       break;
     case SYS_EXIT:
+    {
+      verify_ptr(ptr+2);
+      term_process(*(ptr+2));
       break;
+    }
     case SYS_EXEC:
-      printf("In SYS_EXEC\n");
+    {
+      //printf("In SYS_EXEC\n");
+      verify_ptr(ptr + 2);
+      verify_ptr(*(ptr + 2));
+      f->eax = execute_process(*(ptr + 2));
       break;
+    }
     case SYS_WAIT:
+    {
+      verify_ptr(ptr+2);
+      f->eax = process_wait(*(ptr+2));
       break;
+    }
     case SYS_CREATE:
+    {
+      verify_ptr(ptr+6);
+      verify_ptr(*(ptr + 4));
       break;
+    }
     case SYS_REMOVE:
       break;
     case SYS_OPEN:
@@ -94,14 +111,14 @@ syscall_handler (struct intr_frame *f UNUSED)
     case SYS_WRITE:
     {
       //printf("in write\n");
-      verify_ptr(ptr + 7); // checks that the 'size' param is there
-      verify_ptr(*(ptr + 6)); // goes to the address of the buffer and checks it's validity
-      if(*(ptr + 5) == 1) // if the 'fd' is 1 it writes to console
+      verify_ptr(ptr + 8); // checks that the 'size' param is there
+      verify_ptr(*(ptr + 7)); // goes to the address of the buffer and checks it's validity
+      if(*(ptr + 6) == 1) // if the 'fd' is 1 it writes to console
       {
         // defined in lib/kernel/console.c
         // void putbuf (const char *buffer, size_t n)
-        putbuf(*(ptr + 6), *(ptr+7));
-        f->eax = *(ptr+7);
+        putbuf(*(ptr + 7), *(ptr+8));
+        f->eax = *(ptr+8);
       }
 
 
@@ -127,4 +144,34 @@ syscall_handler (struct intr_frame *f UNUSED)
   printf ("system call!\n");
   thread_exit ();
   */
+}
+
+
+/* Runs the process passed to the cmd_line.
+   Checks
+*/
+int execute_process(const char* cmd_line)
+{
+  acquire_file_lock();
+
+  char *rest;
+  char *filename_copy = malloc(strlen(cmd_line) + 1);
+  strlcpy(filename_copy, cmd_line, strlen(cmd_line) + 1);
+
+  filename_copy = strtok_r(filename_copy, " ", &rest);
+
+  // If filename_copy doesn't exist it fails
+  struct file* open_file = filesys_open(filename_copy);
+
+  if(open_file==NULL)
+  {
+    release_file_lock();
+    return -1
+  }
+  else
+  {
+    file_close(open_file);
+    release_file_lock();
+    return process_execute(cmd_line);
+  }
 }

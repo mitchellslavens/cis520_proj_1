@@ -146,6 +146,23 @@ the file matching the file descriptor. Again we lock whenever we read.
 >> for a system call that only copies 2 bytes of data?  Is there room
 >> for improvement in these numbers, and how much?
 
+An inefficient method could call it on every byte of data to ensure that each
+is on an allocated page. This would require 4096 calls and would be the most
+possible for the given amount of data.
+
+Knowing that page sizes are 4096 bytes, we know that for 4096 bytes of data can exist on
+either a single page, or at most on two pages, depending if the data is aligned with
+the beginning of the page. Thus, with this in mind, the call would only need to be made
+once or twice, depending on whether the data is aligned with the beginning of a page.
+
+For 2 byte data, the inefficient approach would result in two calls, while the number of calls
+remain at one or two for the efficient approach, again, depending on the alignment of the
+data with the beginning of the page.
+
+Obviously, there is room for improvement with the inefficient method, such as implementing the
+efficient method mentioned. This is in the case, however, that the data in question is larger
+than 2 bytes. In that case, the worst case efficiency is equal for both.
+
 >> B5: Briefly describe your implementation of the "wait" system call
 >> and how it interacts with process termination.
 
@@ -171,6 +188,21 @@ exit_code of the child that just finished executing.
 >> allocated resources (locks, buffers, etc.) are freed?  In a few
 >> paragraphs, describe the strategy or strategies you adopted for
 >> managing these issues.  Give an example.
+
+We wrote a function called verify_ptr that, as the name suggests, checks the validity
+of a pointer. The function checks that the address provided is a user address
+by calling is_user_vaddr, and also checks that it is within the allowable range.
+We then call pagedir_get_page function to check that it exists. If any of these fail we
+terminate the process. The verify_ptr function is called in each system call (i.e. every case
+in the switch statement within the system call handler) in order to check all pointers.
+By writing a separate function that is called repeatedly, we do not obscure the meaning of the surrounding
+code as the function call is a single line.  Everything is kept clean.
+
+AS was mentioned previously, if any of the tests in the verify_ptr function do not pass, the process is
+terminated with error code -1. The termination process also frees the process's resources. An example of
+this function in use would be if during stack setup, an address outside of the user address space was pushed
+onto the stack. When the process is then set to be executed, we check the parameters of the stack in order to ensure
+they are valid. If not, terminate process.
 
 ---- SYNCHRONIZATION ----
 
@@ -209,6 +241,18 @@ it is passed back through returns of sequential function calls.
 >> that all resources are freed in each case?  How about when P
 >> terminates without waiting, before C exits?  After C exits?  Are
 >> there any special cases?
+
+P calls wait before C exits:
+If the child to be waited on is found in P's list of children, and that child's
+dead field is false, meaning it has not exited, then we call sema_down on the
+child_sema semaphore. Thus, the parent will be blocked until the child calls sema_up on
+the child_sema semaphore in the term_process function after it determines that it has
+a parent waiting on it. So P is blocked during C's execution for synchronicity sake, at
+least when P calls wait on C.
+
+P calls wait after C exits:
+When C has already exited, then P simply removes C from its list of children and returns C's
+exit code.
 
 ---- RATIONALE ----
 

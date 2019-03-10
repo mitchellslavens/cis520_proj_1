@@ -47,8 +47,8 @@ memory for objects we used.
   Argument parsing/passing starts in process_execute where the file_name/function is given to the newly created
 thread. The file_name can contain arguments and strtok_r() is used to extract the name from the arguments and
 only the function name is passed to the thread. When start_process() is called the full file_name, function name
-and arguments, are passed. The filename is extracted from file_name into a pointer and the file is opened. 
-After that, the stack pointer and file_name are passed to setup_stack)(). 
+and arguments, are passed. The filename is extracted from file_name into a pointer and the file is opened.
+After that, the stack pointer and file_name are passed to setup_stack)().
 
 After the page allocation and installation we create our argv array and other variables. We loop through
 the file_name/function name and the arguments copying each into a location on the stack. This is done
@@ -60,10 +60,10 @@ is to be placed on the stack by placing 'echo' first and it's memory location po
 memory location placed into argv[2] and so forth, so the order is left-to-right. When the final argument is placed
 on the stack the stack is aligned to the next frame. Next the argv array is looped through from right-to-left order
 placing the memory location of the current index onto the stack with memcpy(). Argc, the variable holding the number
-of entries in argv, is placed on the stack next. 
+of entries in argv, is placed on the stack next.
 
-We ensure that we do not overflow the stack page by moving the stack pointer by the number of bytes of the argument 
-we are placing onto the stack. We also insert a NULL terminator at the end of the last argument to prevent access 
+We ensure that we do not overflow the stack page by moving the stack pointer by the number of bytes of the argument
+we are placing onto the stack. We also insert a NULL terminator at the end of the last argument to prevent access
 beyond the stack.
 
 
@@ -78,10 +78,10 @@ threads try to use this function they will utilize the same buffer.
 >> and arguments.  In Unix-like systems, the shell does this
 >> separation.  Identify at least two advantages of the Unix approach.
 
-1. Letting the shell handle the separation means less work for the Kernel. 
+1. Letting the shell handle the separation means less work for the Kernel.
 2. From a security perspective, the less user-controlled variables being passed
-to the Kernel, the better. This is because the Kernel is basically all powerful 
-so the more shielded it can be from users the better. 
+to the Kernel, the better. This is because the Kernel is basically all powerful
+so the more shielded it can be from users the better.
 
 SYSTEM CALLS
 ============
@@ -95,7 +95,7 @@ SYSTEM CALLS
 thread.h changes:
 struct thread * parent - handler to the parent thread.
 struct list child_list - list of the children of this thread.
-int exit_code - the exit code when the thread is terminated. 
+int exit_code - the exit code when the thread is terminated.
 tid_t wait_thread - the tid of the thread being waited for.
 struct semaphore child_sema - the semaphore used for waiting on a child.
 struct file *self_file - the thread's own file.
@@ -108,7 +108,7 @@ struct child
 	tid_t tid; - tid of child thread
 	struct list_elem elem; - for iteration of the list.
 	int exit_code; - the exit code of the child thread.
-	bool dead; - set to true if the child is terminated. 
+	bool dead; - set to true if the child is terminated.
 }
 
 in thread.c:
@@ -119,25 +119,25 @@ struct lock file_lock - used to lock the file system.
 >> Are file descriptors unique within the entire OS or just within a
 >> single process?
 
-They are unique to the process itself. When a process opens a file, it 
+They are unique to the process itself. When a process opens a file, it
 sets the file descriptor of the file to the next file descriptor which is
-incremented per file opened. 
+incremented per file opened.
 
 ---- ALGORITHMS ----
 
 >> B3: Describe your code for reading and writing user data from the
 >> kernel.
 
-For SYS_WRITE we get the three parameters, the file descriptor, the buffer 
+For SYS_WRITE we get the three parameters, the file descriptor, the buffer
 to write to, and the number of bytes to write. If the file descriptor is 1,
 we write to the console. Otherwise we find the file descriptor in our list of
 files and then we file_write to it. We always use the file_lock whenever writing
-to a file. 
+to a file.
 
-For SYS_READ, we get our three parameters, the file descriptor, the buffer to 
+For SYS_READ, we get our three parameters, the file descriptor, the buffer to
 write to, and the number of bytes to write. If the file descriptor is 0, we get
 user input from the input buffer. Otherwise we search our list of files and read from
-the file matching the file descriptor. Again we lock whenever we read.  
+the file matching the file descriptor. Again we lock whenever we read.
 
 >> B4: Suppose a system call causes a full page (4,096 bytes) of data
 >> to be copied from user space into the kernel.  What is the least
@@ -150,13 +150,13 @@ the file matching the file descriptor. Again we lock whenever we read.
 >> and how it interacts with process termination.
 
 Our wait system call calls process_wait with the tid of the child that our
-current thread wants to wait on. Then, if the child is found in the child list, 
+current thread wants to wait on. Then, if the child is found in the child list,
 we set the wait_thread of the current thread to the child's tid. Otherwise we return
 -1 which specifies an error. Then, assuming no error, we check if the child is dead,
-and if it is not we block the current thread by calling sema_down on the child_sema. 
+and if it is not we block the current thread by calling sema_down on the child_sema.
 
-When sema_up is called, we remove the child from the child_list and we return the 
-exit_code of the child that just finished executing. 
+When sema_up is called, we remove the child from the child_list and we return the
+exit_code of the child that just finished executing.
 
 >> B6: Any access to user program memory at a user-specified address
 >> can fail due to a bad pointer value.  Such accesses must cause the
@@ -178,6 +178,30 @@ exit_code of the child that just finished executing.
 >> fails, so it cannot return before the new executable has completed
 >> loading.  How does your code ensure this?  How is the load
 >> success/failure status passed back to the thread that calls "exec"?
+
+Assuming that during the SYS_EXEC call that the thread reaches the point
+where it would call process_execute(). This would mean that the pointers
+to the file arguments were valid and that the file was able to be opened.
+
+When process_execute() is called a thread is created that will run the
+process and the parent thread is that called process_execute is blocked
+to wait on the child. The thread that was just created will run the
+start_process handler passed to it and in there it calls load. Load will
+attempt to prepare the stack and create an executable that is also stored
+on the stack. If this process is successful return true or false if it failed.
+The return from load is placed into the current threads parents success
+field. The parent thread is then woken up with sema_up which wakes up in
+the process execute function where the thread was created. The parent
+thread checks its success field, if it is false a value of -1 is returned
+to the SYS_EXEC call, otherwise the tid of the thread that will execute the
+process is returned. That value of -1 or the tid is placed on the EAX pointer
+on the stacked.
+
+This ensures that if load fails or the stack isn't set up properly that the
+proper value is passed back to the calling thread. This means that it will not
+execute if it fails during the pre-steps to setting up the process. This
+also ensures that the calling thread receives the proper return value and that
+it is passed back through returns of sequential function calls.
 
 >> B8: Consider parent process P with child process C.  How do you
 >> ensure proper synchronization and avoid race conditions when P
@@ -209,14 +233,42 @@ the quarter.
 >> In your opinion, was this assignment, or any one of the three problems
 >> in it, too easy or too hard?  Did it take too long or too little time?
 
+The assignment write up would be more helpful if it was written in order of
+things to complete. The ordered list there does describe what needs to be
+done but it takes a while to digest a 14 page document that has out of
+order requirements. It took us too long to complete, we didn't know that
+the stack had to be restructured for a long time and had there been a quick
+snippet in the write up to point us down that road we would have likely
+progressed at a quicker pace.
+
+Because of the size of the write up my team had problems connecting all
+the points together and had to have a few very late nights to complete this.
+
 >> Did you find that working on a particular part of the assignment gave
 >> you greater insight into some aspect of OS design?
+
+Yes, finally figuring out how the stack structure was supposed to look like
+and how to implement it showed us how programs would be placed into memory.
 
 >> Is there some particular fact or hint we should give students in
 >> future quarters to help them solve the problems?  Conversely, did you
 >> find any of our guidance to be misleading?
 
+We thing that the bullet points on the write up explaining what needs to be
+done should have had the bottom bullet on the very top. Also that a hint to
+look at the stack when passing user arguments would have saved us from working
+on this over break,
+
 >> Do you have any suggestions for the TAs to more effectively assist
 >> students, either for future quarters or the remaining projects?
 
+If TA's have students come to their office hours and ask questions that
+answer an important questions or if many similar questions regarding an
+element of the assignment come up. Creating a discussion post or an
+announcement would save the TA's pain and the students would come to
+class with more hair because they wouldn't be pulling their hair out
+trying to figure something out that has been answered on a discussion post.
+
 >> Any other comments?
+
+No.

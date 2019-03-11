@@ -280,8 +280,19 @@ coming to look at our code would be easily able to understand the implementation
 >> B10: What advantages or disadvantages can you see to your design
 >> for file descriptors?
 
+Our implementation of file descriptors is fairly simple. We have the file descriptor
+as just an int, and that is used to reference certain files. We begin incrementing from 2
+for unique files. This is because fd=1 is designated for console io. One potential disadvantage is 
+that this choice can be rather ambiguous to someone trying to understand our code. The advantage is
+that our solution was very easy to implement. We also just continually increment the file descriptor 
+even if a file is closed for good. Re-use of file descriptors would be an advantage for a system that
+runs for a very long time and opens many files. In this case, given the scale of our operating
+system, the file descriptor growing too large is a non-issue.
+
 >> B11: The default tid_t to pid_t mapping is the identity mapping.
 >> If you changed it, what advantages are there to your approach?
+
+Not applicable to our project.
 
 SURVEY QUESTIONS
 ================

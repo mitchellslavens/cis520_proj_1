@@ -259,6 +259,24 @@ exit code.
 >> B9: Why did you choose to implement access to user memory from the
 >> kernel in the way that you did?
 
+From the two options given in the text we decided to go with the first
+implementation where we would validate the user-provided pointer. The
+reason why we decided to follow the first option is because of it's
+simplicity and reduced overhead to the entire program. We would validate
+a pointer and then validate the pointers that belong to the system calls
+arguments. For example: SYS_EXIT has one parameter passed to it. Before
+entering the case statement where we would execute the accompanying
+functions we would first validate the user provided pointer above the
+switch. This gave us knowledge that for each case statement the
+pointer given was a valid pointer. Next we would validate the arguments
+and in the case of SYS_EXIT's one parameter we would first validate the
+p+1 pointer, which holds the memory location of the argument passed. If
+that turned out to be valid then we would proceed to terminate the process.
+
+This implementation was chosen because of it's simplicity to understand and
+incorporate into our solution without much overhead. Therefore, someone
+coming to look at our code would be easily able to understand the implementation.
+
 >> B10: What advantages or disadvantages can you see to your design
 >> for file descriptors?
 
